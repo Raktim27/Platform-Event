@@ -1,0 +1,28 @@
+@IsTest
+public class HighRiskEventTriggerTest {    
+    @IsTest
+    public static void testCaseCreation() {
+        Test.startTest();
+        
+        // Create users
+        User accOwner = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+        User caseOwner = [SELECT Id FROM User WHERE IsActive = true AND Id != :accOwner.Id LIMIT 1];
+
+        // Create Account with owner
+        Account acc = new Account(Name = 'Test Account', OwnerId = accOwner.Id);
+        insert acc;
+        
+        acc.Risk__c = 'High';
+        update acc;
+        
+        // Publish platform event
+        RiskEvent__e event = new RiskEvent__e(AccountId__c = acc.Id);
+        EventBus.publish(event);
+
+        Test.stopTest();
+        
+        // Verify that a case was created with the right owner
+        Case createdCase = [SELECT Id, OwnerId FROM Case WHERE AccountId = :acc.Id LIMIT 1];
+        System.assertEquals(caseOwner.Id, createdCase.OwnerId, 'Case should be assigned to a different user.');
+    }
+}
