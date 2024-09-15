@@ -1,0 +1,36 @@
+public class RiskEventListenerHandler {
+    public static void handleAfterInsert(List<RiskEvent__e> riskEvents){
+        List<Case> caseList = new List<Case>();
+        Set<Id> accountIdSet = new Set<Id>();
+        Set<Id> userIdSet = new Set<Id>();
+        Map<Id,Id> accountWithOwnerMap = new Map<Id,Id>();
+        
+        for (RiskEvent__e eventRec : riskEvents) {
+            accountIdSet.add(eventRec.AccountId__c);           
+        }
+        
+        for (Account accRec : [SELECT Id, OwnerId FROM Account WHERE Id IN: accountIdSet]) {
+            accountWithOwnerMap.put(accRec.Id,accRec.OwnerId);
+            userIdSet.add(accRec.OwnerId);
+        }
+        
+        // Query for a user different from the account owner
+        Id usrRecId = [SELECT Id FROM User WHERE IsActive = true AND Id NOT IN:userIdSet Limit 1].Id;
+        
+        for(Id key : accountWithOwnerMap.keySet()){
+            Case newCase = new Case();
+            newCase.AccountId = key;
+            newCase.Subject = 'High Risk Detected';
+            newCase.Description = 'A high-risk event has been detected for this account.';
+            newCase.OwnerId = usrRecId;
+            
+            caseList.add(newCase);
+         }
+        
+        
+        // Insert the cases
+        if (!caseList.isEmpty()) {
+            insert caseList;
+        }
+    }
+}
