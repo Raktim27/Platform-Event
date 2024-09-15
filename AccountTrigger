@@ -1,0 +1,20 @@
+trigger AccountTrigger on Account (after update) {
+    List<RiskEvent__e> events = new List<RiskEvent__e>();
+    
+    for (Account acc : Trigger.new) {
+        Account oldAcc = Trigger.oldMap.get(acc.Id);
+        // Check if Risk is changed to "High"
+        if (acc.Risk__c == 'High' && oldAcc.Risk__c != 'High') {
+            // Create a new platform event
+            RiskEvent__e eventInstance = new RiskEvent__e();
+            eventInstance.AccountId__c = acc.Id;
+            eventInstance.Risk__c = acc.Risk__c;
+            events.add(eventInstance);
+        }
+    }
+    
+    if (!events.isEmpty()) {
+        System.debug('events'+events);
+        EventBus.publish(events);
+    }
+}
