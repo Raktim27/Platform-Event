@@ -1,0 +1,5 @@
+trigger RiskEventListener on RiskEvent__e (after insert) {  
+     
+    RiskEventListenerHandler.handleAfterInsert(Trigger.new);
+    
+}
